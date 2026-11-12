@@ -6,9 +6,9 @@ import io
 import json
 import tarfile
 from pathlib import Path
-try:
+if __package__:
     from .summarize import load_validate, safe_file, summarize
-except ImportError:
+else:
     from summarize import load_validate, safe_file, summarize
 
 

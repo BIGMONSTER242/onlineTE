@@ -1,10 +1,10 @@
 """Deterministic pre-solve source selection; no D1 oracle information is used."""
 import math
 import numpy as np
-try:
+if __package__:
     from .oracle import matrices
     from .prepare_cases import rng_for
-except ImportError:
+else:
     from oracle import matrices
     from prepare_cases import rng_for
 

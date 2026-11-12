@@ -8,6 +8,11 @@ if [[ ! -x "$PY" ]]; then PY="${PYTHON:-python3}"; fi
 command="${1:-help}"
 if [[ $# -gt 0 ]]; then shift; fi
 case "$command" in
+  smoke|screening|summarize|pack)
+    "$PY" -m experiments.active_set.environment.preflight || exit "$?"
+    ;;
+esac
+case "$command" in
   doctor|setup) exec "$PY" -m experiments.active_set.environment.manage "$command" "$@" ;;
   smoke) exec "$PY" -m experiments.active_set.smoke "$@" ;;
   screening) exec "$PY" -m experiments.active_set.run "$@" ;;

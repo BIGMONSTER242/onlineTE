@@ -7,9 +7,9 @@ import json
 from pathlib import Path
 import networkx as nx
 import numpy as np
-try:
+if __package__:
     from .oracle import solve_lp
-except ImportError:
+else:
     from oracle import solve_lp
 
 SEED_RULE = 'numpy SeedSequence([seed, stream, scenario_code, repeat]); streams: event=1, random=2; concentrated=0, dispersed=1'

@@ -42,3 +42,15 @@ Pre-commit integration smoke: `results/active_set/20261112T080428Z-f10d8731` (ig
 - On interruption, inspect manifest status and run `screening --resume --run-dir ...` only against the same committed code/config/inputs. Failure attempts remain visible.
 - User must create/authorize the intended remote destination before upload can be verified. Do not push upstream, force-push, merge, or run the formal server experiment on the owner's behalf.
 - Return the generated result package for validation before considering sparse ADMM. No experimental speedup percentage is available or claimed.
+
+## 2026-11-12: server setup report and fail-fast fix
+
+The owner's log showed Python 3.8.10, no project virtual environment, and no
+python3.12 executable. Setup exited before dependency installation. Later manual
+smoke/screening commands consequently failed on missing SciPy and unsupported
+path APIs; no original baseline or formal experiment ran. Added a Python-version
+preflight for experiment commands and removed broad import fallback handlers that
+masked missing SciPy as a missing local oracle module. Added regression tests and
+user-local Python 3.12 recovery instructions. Optimization/input/metric code is
+unchanged. This does not establish that the owner's server is fixed until setup
+and smoke succeed there.
