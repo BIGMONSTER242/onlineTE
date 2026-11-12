@@ -1,0 +1,8 @@
+{
+  "topology": "synthetic24", "seeds": [0, 1, 2, 3, 4],
+  "scenarios": ["concentrated", "dispersed"],
+  "budgets": [0.10, 0.25, 0.50, 1.00], "random_repeats": 5,
+  "lp_timeout": 60, "baseline_timeout": 300, "max_outer": 1000,
+  "threads": 1, "max_workers": 4,
+  "quality_thresholds": [0.005, 0.01, 0.02]
+}

@@ -70,3 +70,6 @@ __pycache__/
 .env
 .env.*
 *.bundle
+
+# Writable plotting caches (including custom experiment output locations)
+.cache/

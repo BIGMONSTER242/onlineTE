@@ -1,0 +1,7 @@
+{
+  "implemented": false,
+  "requires": "C2 server results and predeclared gate",
+  "budget": 0.5, "full_refresh_interval": 5, "max_staleness": 5,
+  "timeout": 300, "max_outer": 1000,
+  "methods": ["original_full", "random_budget", "impact_budget"]
+}
