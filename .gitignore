@@ -59,3 +59,14 @@ presentation/
 # Numba compiled functions
 *.nbc
 *.nbi
+
+# Reproducible active-set experiment outputs and local environments
+.venv/
+results/active_set/
+experiments/active_set/environment/installed*.json
+__pycache__/
+.pytest_cache/
+*.lic
+.env
+.env.*
+*.bundle

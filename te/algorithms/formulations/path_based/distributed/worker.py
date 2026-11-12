@@ -1,4 +1,5 @@
 import time
+import os
 import numpy as np
 import networkx as nx
 from typing import Optional, Tuple
@@ -204,8 +205,8 @@ class OnlineTEWorkerNode(DistributedSolverNodeBase):
         """
         coordinator_path_file = self._solver_params.PathFile
         if coordinator_path_file is not None:
-            name, ext = coordinator_path_file.split('.', maxsplit=1)
-            return f'{name}_{self.worker_id}_{self.assigned_commodity_count}.{ext}'
+            name, ext = os.path.splitext(coordinator_path_file)
+            return f'{name}_{self.worker_id}_{self.assigned_commodity_count}{ext}'
 
     def _create_local_path_object(self):
         self._path_object = build_provider(

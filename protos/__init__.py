@@ -40,7 +40,9 @@ def compile_proto(proto: str, with_dependency: bool = False):
         protobuf=protobuf_path
     )
 
-    subprocess.call(cmd.split())
+    subprocess.run([sys.executable, '-m', 'grpc_tools.protoc', '-I', PROTO_PATH,
+                    f'--python_out={dir_path}', f'--pyi_out={dir_path}',
+                    f'--grpc_python_out={dir_path}', protobuf_path], check=True)
 
     # Make an empty `__init__` for the proto dir
     # Since we import as modules, let's add the proto path to `sys.path`
