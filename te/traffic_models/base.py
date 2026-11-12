@@ -1,0 +1,183 @@
+"""
+For all intents and purposes, a Traffic Matrix (TM) is _just_ a Numpy array.
+However, it is rare that we want to evaluate just one traffic matrix, and
+in fact will likely test on many in a sequence.
+As such, we define a TM _generator_, `TMGenerator`, which is essentially just a Python 
+`generator` that iterates on some sequence of traffic matrices. We do this since
+loading many traffic matrices at once can be costly and the generator can afford to be
+lazy.
+"""
+
+import argparse
+import numpy as np
+import networkx as nx
+from itertools import permutations
+from numpy.typing import DTypeLike
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import List, ClassVar, Tuple, Iterator, Optional
+from utils.table_dataclass import TableDataclass
+
+
+@dataclass(frozen=True, kw_only=True)
+class TMGeneratorParams(TableDataclass):
+    """
+    A base class for all TM parameters.
+    
+    Parameters
+    ----------
+    seed: Optional[int]
+        A random number generator seed that can be used when generating
+        matrices of this class.
+    count: int
+        Number of traffic matrices to generate.
+    dtype: numpy.DTypeLike
+        The data-type of the matrix.
+    scale_factor: float
+        The traffic matrix scale factor. During iteration, any TM we
+        generate is scaled by this amount before output.
+    """
+    seed: Optional[int] = field(default=None, metadata={'help': argparse.SUPPRESS})
+    count: int = field(default=1, metadata={'help': argparse.SUPPRESS})
+    dtype: DTypeLike = field(default=np.float32, metadata={'help': argparse.SUPPRESS})
+    scale_factor: float = field(default=1.0, metadata={'help': argparse.SUPPRESS})
+    _type: ClassVar[str] = ''
+
+    def __post_init__(self):
+        assert len(self._type) > 0
+
+
+class TMGenerator(ABC):
+    """
+    ABC that implements a sequence of traffic matrices generated from a
+    given family (e.g. uniform).
+    The general pattern of use is to just iterate on the generator one
+    at a time.
+    These objects have no memory and thus it should be possible to iterate
+    and exhaust them, and then get the exact same sequence of matrices upon
+    reiteration.
+    """
+    _TYPE: ClassVar[str] = ''
+
+    def __init__(self, params: TMGeneratorParams):
+        self._params = params
+        assert len(self._TYPE) > 0
+
+    @abstractmethod
+    def __iter__(self) -> Iterator[np.ndarray]:
+        """This object can be iterated to generate traffic matrices."""
+        pass
+
+    def get_rng(self):
+        return np.random.default_rng(self.params.seed)
+
+    @property
+    def params(self) -> TMGeneratorParams:
+        """Generator parameters."""
+        return self._params
+
+    @classmethod
+    def type(cls) -> str:
+        """The type of this traffic matrix."""
+        return cls._TYPE
+
+
+@dataclass(frozen=True)
+class Commodity:
+    """A Commodity is just a tuple of source, destination and demand."""
+    source: int
+    destination: int
+    demand: float
+
+
+def commodity_od_iterator(num_nodes: int) -> Iterator[Tuple[int, int]]:
+    """Returns an iterator that gives commodity origin-destination pairs"""
+    return permutations(range(num_nodes), 2)
+
+
+def commodity_id_to_od(commodity_id: int, num_nodes: int) -> Tuple[int, int]:
+    """Given commodity ID and number of nodes, returns the source and destination IDs"""
+    source = commodity_id // (num_nodes - 1)
+    offset = commodity_id % (num_nodes - 1)
+    return source, offset if offset < source else offset + 1
+
+
+def traffic_to_commodity(tm: np.ndarray) -> List[Commodity]:
+    """Convert a traffic matrix to a list of commodities"""
+    return [
+        Commodity(src_idx, dst_idx, tm[src_idx, dst_idx]) \
+            for src_idx, dst_idx in np.ndindex(tm.shape) \
+            if src_idx != dst_idx
+    ]
+
+
+def traffic_to_list_of_tuples(tm: np.ndarray) -> List[Tuple[float, int, int]]:
+    """Convert a traffic matrix to a list of tuples"""
+    return [
+        (src_idx, dst_idx, tm[src_idx, dst_idx]) \
+            for src_idx, dst_idx in np.ndindex(tm.shape) \
+            if src_idx != dst_idx
+    ]
+
+
+def traffic_to_demands(tm: np.ndarray) -> np.ndarray:
+    """Convert traffic matrix into a 1D array of demands"""
+    return tm[~np.eye(tm.shape[0], dtype=bool)]
+
+
+def commodity_source_destination_lists(
+    num_nodes: int,
+    inclusive_start: Optional[int] = 0,
+    exclusive_end: Optional[int] = None
+) -> Tuple[Tuple[int], Tuple[int]]:
+    """Given start and end commodity IDs, returns source and destination lists"""
+    if exclusive_end is None:
+        exclusive_end = num_nodes * (num_nodes - 1)
+    assert inclusive_start < exclusive_end
+    return tuple(zip(*map(
+        lambda idx: commodity_id_to_od(idx, num_nodes),
+        range(inclusive_start, exclusive_end)
+    )))
+
+
+def edge_based_to_commodities(
+    assignments: np.ndarray, commodities: List[Commodity],
+    graph: nx.DiGraph
+) -> List[Tuple[Commodity, Commodity]]:
+    """
+    A handy function that takes the edge-based assignment and returns the list
+    of _routed_ commodities. We need this to check if the amount a node sends
+    or receives is correctly balanced.
+
+    Returns
+    -------
+    ls: List[Tuple[Commodity, Commodity]]
+        List of tuples, containing the amount sent and received respectively.
+    """
+    ls = []
+    for k, commodity in enumerate(commodities):
+        flow_out = defaultdict(list)
+        flow_in = defaultdict(list)
+        for e, edge in enumerate(graph.edges()):
+            flow_out[edge[0]].append(assignments[e, k])
+            flow_in[edge[1]].append(assignments[e, k])
+        commodity_sent = Commodity(
+            source=commodity.source,
+            destination=commodity.destination,
+            demand=sum(flow_out[commodity.source])
+        )
+        commodity_received = Commodity(
+            source=commodity.source,
+            destination=commodity.destination,
+            demand=sum(flow_in[commodity.destination])
+        )
+        ls.append((commodity_sent, commodity_received))
+    return ls
+
+
+
+__all__ = ['TMGenerator', 'TMGeneratorParams', 'Commodity',
+           'traffic_to_commodity', 'traffic_to_list_of_tuples',
+           'edge_based_to_commodities', 'commodity_id_to_od',
+           'commodity_od_iterator', 'traffic_to_demands']

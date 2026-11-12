@@ -1,0 +1,51 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+import "array.proto";
+
+
+service AsynchronousADMMSolver {
+    rpc SetInitialFeasibleSolution(stream Chunk) returns (google.protobuf.Empty) {}
+    rpc SetNullSpaceBasis(stream Chunk) returns (google.protobuf.Empty) {}
+    rpc RequestChunk(google.protobuf.Empty) returns (stream Chunk) {}
+    rpc QueryState(google.protobuf.Empty) returns (State) {}
+    rpc SetSolverParameters(SolverParameters) returns (google.protobuf.Empty) {}
+    rpc SetActiveCommodityCount(ActiveCommodityCount) returns (google.protobuf.Empty) {}
+    rpc Close(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+}
+
+message ControllerMessage {
+    SerializedNumpyArrayMessage P_bar_t = 1;
+    SerializedNumpyArrayMessage u_t = 2;
+    SerializedNumpyArrayMessage Y_bar_t = 3;
+    repeated int32 Workers = 4;
+}
+
+message SwitchMessage {
+    int32 worker_id = 1;
+    int32 runtime_ns = 2;
+    SerializedNumpyArrayMessage means = 3;
+}
+
+message State {
+    bool ready = 1;
+}
+
+message SolverParameters {
+    int32 NumberOfEpochs = 1;
+    float Rho = 2;
+    float Eta = 3;
+    float Gamma = 4;
+    int32 QPIterations = 5;
+    int32 NumWorkers = 6;
+    string Precision = 7;
+    float BigGamma = 8;
+    int32 Seed = 9;
+    int32 Upsilon = 10;
+    int32 Sigma = 11;
+    int32 WorkerBatchSize = 12;
+    float ADMMConvTol = 13;
+}
+
+message ActiveCommodityCount {
+    int32 TotalNumberOfCommodities = 1;
+}
